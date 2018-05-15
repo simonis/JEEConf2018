@@ -1,0 +1,9 @@
+Summary,Custom field (Scope)
+JEP 309: Dynamic Class-File Constants,SE
+JEP 318: Epsilon: A No-Op Garbage Collector,Implementation
+JEP 320: Remove the Java EE and CORBA Modules,SE
+JEP 321: HTTP Client (Standard),SE
+JEP 323: Local-Variable Syntax for Lambda Parameters,SE
+JEP 324: Key Agreement with Curve25519 and Curve448,SE
+JEP 327: Unicode 10,SE
+JEP 328: Flight Recorder,JDK

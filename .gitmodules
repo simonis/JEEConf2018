@@ -2,3 +2,7 @@
 	path = CDS
 	url = https://github.com/simonis/CDS
 	branch = JEEConf2018
+[submodule "Java_9_10_11_BOF/reveal.js"]
+	path = Java_9_10_11_BOF/reveal.js
+	url = https://github.com/simonis/reveal.js.git
+	branch = roboto_branch

@@ -1,0 +1,741 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Das kleine OpenJDK Einmaleins</title>
+
+    <meta name="description" content="Einsichten in die Funktionsweise und Organisation des OpenJDK Projektes" />
+    <meta name="author" content="Volker H. Simonis" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" />
+
+    <link rel="stylesheet" href="reveal.js/css/reveal.css" />
+    <link rel="stylesheet" href="reveal.js/css/theme/joker2017.css" id="theme" />
+    <!-- Code syntax highlighting -->
+    <link rel="stylesheet" href="reveal.js/lib/css/monokai_sublime.css" />
+    <!-- Local overrides -->
+    <link rel="stylesheet" href="css/local.css" />
+
+    <style type="text/css">
+
+ .reveal table.simple tr {
+    border-bottom: 2px solid;
+  }
+ .reveal table.simple th {
+    text-align: center;
+    border-bottom: 0p;
+  }
+ .reveal  table.simple td {
+    text-align: left;
+    border-bottom: 0px;
+  }
+ .reveal  table.simple td.center {
+    text-align: center;
+    border-bottom: 0px;
+  }
+/*
+ .reveal table tr :hover {
+    font-size: 200%;
+  }
+*/
+
+ .reveal table tr.JEP_SE {
+    background-color: #b0ffb0;
+  }
+ .reveal table tr.JEP_JDK {
+    background-color: yellow;
+  }
+ .reveal table tr.JEP_Implementation {
+    background-color: #f0f0f0;
+  }
+    </style>
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="reveal.js/lib/js/html5shiv.js"></script>
+    <![endif]-->
+
+    <!--
+      Issue #1105: Keyboard shortcut to skip forward/back over fragments #1173
+      https://github.com/hakimel/reveal.js/pull/1173
+    -->
+  </head>
+
+
+<!--
+;; indent block of text
+;; C-u <number> C-x <TAB>
+
+
+
+;; select this code and do 'M-x eval-region'
+(defun make-fragment (p1 p2)
+  "Wraps the selection into 'fragment' <span>s and quotes '&', '<' and '>'."
+  (interactive "r")
+  (setq inputStr (buffer-substring-no-properties p1 p2))
+  (setq inputStr (replace-regexp-in-string "&" "&amp;" inputStr))
+  (setq inputStr (replace-regexp-in-string "<" "&lt;" inputStr))
+  (setq inputStr (replace-regexp-in-string ">" "&gt;" inputStr))
+  (setq resultStr (concat "<span class=\"fragment\">" (concat inputStr "</span>")))
+  (delete-region p1 p2)
+  (insert resultStr)
+)
+(defun make-fragment-simple (p1 p2)
+  "Wraps the selection into 'fragment' <span>s without any quoting."
+  (interactive "r")
+  (setq inputStr (buffer-substring-no-properties p1 p2))
+  (setq resultStr (concat "<span class=\"fragment\">" (concat inputStr "</span>")))
+  (delete-region p1 p2)
+  (insert resultStr)
+)
+(defun quote-fragment (p1 p2)
+  "Quotes '&', '<' and '>'."
+  (interactive "r")
+  (setq inputStr (buffer-substring-no-properties p1 p2))
+  (setq inputStr (replace-regexp-in-string "&" "&amp;" inputStr))
+  (setq inputStr (replace-regexp-in-string "<" "&lt;" inputStr))
+  (setq inputStr (replace-regexp-in-string ">" "&gt;" inputStr))
+  (delete-region p1 p2)
+  (insert inputStr)
+)
+
+(global-set-key (kbd "C-f") 'make-fragment)
+(global-set-key (kbd "C-S-f") 'make-fragment-simple)
+(global-set-key (kbd "C-S-q") 'quote-fragment)
+;; revert key-binding
+;; (global-set-key (kbd "C-f") 'forward-char)
+;;
+;; use 'C-h k <keystroke>' to find out what <keystroke> ia currently bound to
+
+;; (vhs) The following is required to make 'C-c C-t' insert <code> tags without
+;; newlines. 'sgml-tag-alist' is the "file-local" version of 'html-tag-alist'
+(add-to-list 'html-tag-alist '("code"))
+(add-to-list 'sgml-tag-alist '("code"))
+
+-->
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+
+        <section>
+	  <a href="https://commons.wikimedia.org/wiki/File%3ADuke_(Java_mascot)_waving.svg"><img class="plain" data-src="images/Duke_waving.svg" alt="Duke"/></a>
+          <h1>What's new in Java 9, 10 and 11</h1>
+          <p>
+            <small>Volker Simonis, SAP / <a href="mailto:volker.simonis@gmail.com">volker.simonis@gmail.com</a></small>
+          </p>
+        </section>
+
+        <section>
+
+          <h3 style="text-transform: none;"><a href="https://simonis.github.io/JEEConf2018/Java_9_10_11_BOF">https://simonis.github.io/JEEConf2018/Java_9_10_11_BOF</a></h3>
+
+        </section>
+
+        <section>
+
+          <section>
+            <h2><a href="http://openjdk.java.net/jeps/0"><b>JEP</b> - The JDK Enhancement-Proposal &amp; Roadmap Process</a></h2>
+
+            <ul>
+              <li>Collect, review, sort, and record proposals for enhancements to the JDK</li>
+              <li><a href="http://openjdk.java.net/jeps/1">JEP 1: JDK Enhancement-Proposal &amp; Roadmap Process</a> defines the process</li>
+              <li>Simpler than a <a href="https://www.jcp.org">Java Community Process</a> (<b>JCP</b>) <a href="https://www.jcp.org/en/jsr/overview">Java Specification Request</a> (<b>JSR</b>)
+                <ul>
+                  <li>Specification changes still require a JSR</li>
+                </ul>
+              </li>
+              <li>The JEP process is still dominated by Oracle:
+                <ul>
+                  <li>requires endorsement and funding by <a href="http://openjdk.java.net/bylaws#group-lead">Group Leads</a></li>
+                  <li>The <a href="http://openjdk.java.net/bylaws#openjdk-lead">OpenJDK Lead</a>
+                    (appointed by Oracle) ultimately<br/> decides which JEPs to include into the Roadmap.</li>
+                </ul>
+              </li>
+              <li>Still attractive for &ldquo;implementation enhancements&rdquo; (i.e. new Ports, GCs, JITs, ..)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2><a href="https://www.jcp.org"><b>JCP</b> - The Java Community Process</a></h2>
+
+            <ul>
+              <li>A formalized mechanism for developing Java specifications</li>
+              <li><b>Not</b> an independent standards organization / legal entity
+                <ul>
+                  <li>A vendor consortium dominated by Oracle</li>
+                </ul>
+              </li>
+              <li>Membership requires fee for organizations/companies but is free for individuals</li>
+              <li><a href="https://www.jcp.org/en/jsr/overview"><b>JSR</b></a>'s (Java Specification Requests) for proposing and specifying new technologies:
+                <ul>
+                  <li>A final JSR provides a free reference implementation and</li>
+                  <li>A <a href="https://en.wikipedia.org/wiki/Technology_Compatibility_Kit">TCK</a> (Technology Compatibility Kit) for verification</li>
+                </ul>
+              </li>
+              <li>Currently the JCP specifies three platforms:
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=1&amp;listByType=platform">Java ME</a>,
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=2&amp;listByType=platform">Java SE</a> and
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=3&amp;listByType=platform"><span style="text-decoration: line-through;">Java EE</span></a></li>
+              <li>JCP is being criticized as being a "rubber stamp organization", but see:
+                <ul>
+                  <li><a href="https://en.wikipedia.org/wiki/Apache_Harmony#Difficulties_to_obtain_a_TCK_license_from_Sun">Apache vs. Sun on getting access to the TCK</a></li>
+                  <li><a href="https://www.jcp.org/en/jsr/results?id=5959">JCP EC rejects JSR 376 (Jigsaw)</a></li>
+                </ul>
+              </li>
+            </ul>
+
+          </section>
+
+          <section>
+            <h2>Incubating/Preview Features</h2>
+
+            <ul>
+              <li><a href="http://openjdk.java.net/jeps/11">JEP 11: Incubator Modules</a>
+                <ul>
+                  <li>Introduced in OpenJDK 9</li>
+                  <li>Ship non-final APIs to developers to get feedback</li>
+                  <li>Use <code>jdk.incubator</code> prefix for modules and exported packages</li>
+                  <li>API must be either finalized, substantially improved or removed in the next release</li>
+                  <li>Not part of the Java SE standard!</li>
+               </ul>
+              </li>
+              <li><a href="http://openjdk.java.net/jeps/12">JEP 12: Preview Language and VM Features</a>
+                <ul>
+                  <li>Fully specified, fully implemented, yet impermanent features</li>
+                  <li>Part of Java SE platform, checked by the corresponding TCK</li>
+                  <li>Disabled by default (use <code>--incubating</code> flag)</li>
+                </ul>
+              </li>
+            </ul>
+
+          </section>
+
+        </section>
+
+        <section style="height:100%" data-background="images/OracleJavaSE8Overview.png" data-background-size="auto" data-background-color="#ffffff">
+
+          <a href="https://docs.oracle.com/javase/8/docs/index.html">
+          <div style="position : relative; height : 100%;">
+            <div style="position : absolute; bottom : 0; text-align : center; width : 100%;">
+              <small style="font-size:60%">(c) https://docs.oracle.com/javase/8/docs/index.html</small>
+            </div>
+          </div>
+          </a>
+        </section>
+
+        <section class="demo">
+
+          <section class="demo">
+
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 6em 0 0; border: none;">
+	      <tbody>
+
+<tr><td>102: <a href="http://openjdk.java.net/jeps/102">Process API Updates</a></td></tr>
+<tr><td>110: <a href="http://openjdk.java.net/jeps/110">HTTP 2 Client</a></td></tr>
+<tr><td>143: <a href="http://openjdk.java.net/jeps/143">Improve Contended Locking</a></td></tr>
+<tr><td>158: <a href="http://openjdk.java.net/jeps/158">Unified JVM Logging</a></td></tr>
+<tr><td>165: <a href="http://openjdk.java.net/jeps/165">Compiler Control</a></td></tr>
+<tr><td>193: <a href="http://openjdk.java.net/jeps/193">Variable Handles</a></td></tr>
+<tr><td>197: <a href="http://openjdk.java.net/jeps/197">Segmented Code Cache</a></td></tr>
+<tr><td>199: <a href="http://openjdk.java.net/jeps/199">Smart Java Compilation, Phase Two</a></td></tr>
+<tr><td>200: <a href="http://openjdk.java.net/jeps/200">The Modular JDK</a></td></tr>
+<tr><td>201: <a href="http://openjdk.java.net/jeps/201">Modular Source Code</a></td></tr>
+<tr><td>211: <a href="http://openjdk.java.net/jeps/211">Elide Deprecation Warnings on Import Statements</a></td></tr>
+<tr><td>212: <a href="http://openjdk.java.net/jeps/212">Resolve Lint and Doclint Warnings</a></td></tr>
+<tr><td>213: <a href="http://openjdk.java.net/jeps/213">Milling Project Coin</a></td></tr>
+<tr><td>214: <a href="http://openjdk.java.net/jeps/214">Remove GC Combinations Deprecated in JDK 8</a></td></tr>
+<tr><td>215: <a href="http://openjdk.java.net/jeps/215">Tiered Attribution for javac</a></td></tr>
+<tr><td>216: <a href="http://openjdk.java.net/jeps/216">Process Import Statements Correctly</a></td></tr>
+<tr><td>217: <a href="http://openjdk.java.net/jeps/217">Annotations Pipeline 2.0</a></td></tr>
+<tr><td>219: <a href="http://openjdk.java.net/jeps/219">Datagram Transport Layer Security (DTLS)</a></td></tr>
+<tr><td>220: <a href="http://openjdk.java.net/jeps/220">Modular Run-Time Images</a></td></tr>
+<tr><td>221: <a href="http://openjdk.java.net/jeps/221">Simplified Doclet API</a></td></tr>
+<tr><td>222: <a href="http://openjdk.java.net/jeps/222">jshell: The Java Shell (Read-Eval-Print Loop)</a></td></tr>
+<tr><td>223: <a href="http://openjdk.java.net/jeps/223">New Version-String Scheme</a></td></tr>
+<tr><td>224: <a href="http://openjdk.java.net/jeps/224">HTML5 Javadoc</a></td></tr>
+<tr><td>225: <a href="http://openjdk.java.net/jeps/225">Javadoc Search</a></td></tr>
+<tr><td>226: <a href="http://openjdk.java.net/jeps/226">UTF-8 Property Files</a></td></tr>
+<tr><td>227: <a href="http://openjdk.java.net/jeps/227">Unicode 7.0</a></td></tr>
+<tr><td>228: <a href="http://openjdk.java.net/jeps/228">Add More Diagnostic Commands</a></td></tr>
+<tr><td>229: <a href="http://openjdk.java.net/jeps/229">Create PKCS12 Keystores by Default</a></td></tr>
+<tr><td>231: <a href="http://openjdk.java.net/jeps/231">Remove Launch-Time JRE Version Selection</a></td></tr>
+<tr><td>232: <a href="http://openjdk.java.net/jeps/232">Improve Secure Application Performance</a></td></tr>
+
+              </tbody>
+            </table>
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 6em 0 0; border: none;">
+	      <tbody>
+
+
+<tr><td>233: <a href="http://openjdk.java.net/jeps/233">Generate Run-Time Compiler Tests Automatically</a></td></tr>
+<tr><td>235: <a href="http://openjdk.java.net/jeps/235">Test Class-File Attributes Generated by javac</a></td></tr>
+<tr><td>236: <a href="http://openjdk.java.net/jeps/236">Parser API for Nashorn</a></td></tr>
+<tr><td>237: <a href="http://openjdk.java.net/jeps/237">Linux/AArch64 Port</a></td></tr>
+<tr><td>238: <a href="http://openjdk.java.net/jeps/238">Multi-Release JAR Files</a></td></tr>
+<tr><td>240: <a href="http://openjdk.java.net/jeps/240">Remove the JVM TI hprof Agent</a></td></tr>
+<tr><td>241: <a href="http://openjdk.java.net/jeps/241">Remove the jhat Tool</a></td></tr>
+<tr><td>243: <a href="http://openjdk.java.net/jeps/243">Java-Level JVM Compiler Interface</a></td></tr>
+<tr><td>244: <a href="http://openjdk.java.net/jeps/244">TLS Application-Layer Protocol Negotiation Extension</a></td></tr>
+<tr><td>245: <a href="http://openjdk.java.net/jeps/245">Validate JVM Command-Line Flag Arguments</a></td></tr>
+<tr><td>246: <a href="http://openjdk.java.net/jeps/246">Leverage CPU Instructions for GHASH and RSA</a></td></tr>
+<tr><td>247: <a href="http://openjdk.java.net/jeps/247">Compile for Older Platform Versions</a></td></tr>
+<tr><td>248: <a href="http://openjdk.java.net/jeps/248">Make G1 the Default Garbage Collector</a></td></tr>
+<tr><td>249: <a href="http://openjdk.java.net/jeps/249">OCSP Stapling for TLS</a></td></tr>
+<tr><td>250: <a href="http://openjdk.java.net/jeps/250">Store Interned Strings in CDS Archives</a></td></tr>
+<tr><td>251: <a href="http://openjdk.java.net/jeps/251">Multi-Resolution Images</a></td></tr>
+<tr><td>252: <a href="http://openjdk.java.net/jeps/252">Use CLDR Locale Data by Default</a></td></tr>
+<tr><td>253: <a href="http://openjdk.java.net/jeps/253">Prepare JavaFX UI Controls &amp; CSS APIs for Modularization</a></td></tr>
+<tr><td>254: <a href="http://openjdk.java.net/jeps/254">Compact Strings</a></td></tr>
+<tr><td>255: <a href="http://openjdk.java.net/jeps/255">Merge Selected Xerces 2.11.0 Updates into JAXP</a></td></tr>
+<tr><td>256: <a href="http://openjdk.java.net/jeps/256">BeanInfo Annotations</a></td></tr>
+<tr><td>257: <a href="http://openjdk.java.net/jeps/257">Update JavaFX/Media to Newer Version of GStreamer</a></td></tr>
+<tr><td>258: <a href="http://openjdk.java.net/jeps/258">HarfBuzz Font-Layout Engine</a></td></tr>
+<tr><td>259: <a href="http://openjdk.java.net/jeps/259">Stack-Walking API</a></td></tr>
+<tr><td>260: <a href="http://openjdk.java.net/jeps/260">Encapsulate Most Internal APIs</a></td></tr>
+<tr><td>261: <a href="http://openjdk.java.net/jeps/261">Module System</a></td></tr>
+<tr><td>262: <a href="http://openjdk.java.net/jeps/262">TIFF Image I/O</a></td></tr>
+<tr><td>263: <a href="http://openjdk.java.net/jeps/263">HiDPI Graphics on Windows and Linux</a></td></tr>
+<tr><td>264: <a href="http://openjdk.java.net/jeps/264">Platform Logging API and Service</a></td></tr>
+<tr><td>265: <a href="http://openjdk.java.net/jeps/265">Marlin Graphics Renderer</a></td></tr>
+
+              </tbody>
+            </table>
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 0 0 0; border: none;">
+	      <tbody>
+
+
+<tr><td>266: <a href="http://openjdk.java.net/jeps/266">More Concurrency Updates</a></td></tr>
+<tr><td>267: <a href="http://openjdk.java.net/jeps/267">Unicode 8.0</a></td></tr>
+<tr><td>268: <a href="http://openjdk.java.net/jeps/268">XML Catalogs</a></td></tr>
+<tr><td>269: <a href="http://openjdk.java.net/jeps/269">Convenience Factory Methods for Collections</a></td></tr>
+<tr><td>270: <a href="http://openjdk.java.net/jeps/270">Reserved Stack Areas for Critical Sections</a></td></tr>
+<tr><td>271: <a href="http://openjdk.java.net/jeps/271">Unified GC Logging</a></td></tr>
+<tr><td>272: <a href="http://openjdk.java.net/jeps/272">Platform-Specific Desktop Features</a></td></tr>
+<tr><td>273: <a href="http://openjdk.java.net/jeps/273">DRBG-Based SecureRandom Implementations</a></td></tr>
+<tr><td>274: <a href="http://openjdk.java.net/jeps/274">Enhanced Method Handles</a></td></tr>
+<tr><td>275: <a href="http://openjdk.java.net/jeps/275">Modular Java Application Packaging</a></td></tr>
+<tr><td>276: <a href="http://openjdk.java.net/jeps/276">Dynamic Linking of Language-Defined Object Models</a></td></tr>
+<tr><td>277: <a href="http://openjdk.java.net/jeps/277">Enhanced Deprecation</a></td></tr>
+<tr><td>278: <a href="http://openjdk.java.net/jeps/278">Additional Tests for Humongous Objects in G1</a></td></tr>
+<tr><td>279: <a href="http://openjdk.java.net/jeps/279">Improve Test-Failure Troubleshooting</a></td></tr>
+<tr><td>280: <a href="http://openjdk.java.net/jeps/280">Indify String Concatenation</a></td></tr>
+<tr><td>281: <a href="http://openjdk.java.net/jeps/281">HotSpot C++ Unit-Test Framework</a></td></tr>
+<tr><td>282: <a href="http://openjdk.java.net/jeps/282">jlink: The Java Linker</a></td></tr>
+<tr><td>283: <a href="http://openjdk.java.net/jeps/283">Enable GTK 3 on Linux</a></td></tr>
+<tr><td>284: <a href="http://openjdk.java.net/jeps/284">New HotSpot Build System</a></td></tr>
+<tr><td>285: <a href="http://openjdk.java.net/jeps/285">Spin-Wait Hints</a></td></tr>
+<tr><td>287: <a href="http://openjdk.java.net/jeps/287">SHA-3 Hash Algorithms</a></td></tr>
+<tr><td>288: <a href="http://openjdk.java.net/jeps/288">Disable SHA-1 Certificates</a></td></tr>
+<tr><td>289: <a href="http://openjdk.java.net/jeps/289">Deprecate the Applet API</a></td></tr>
+<tr><td>290: <a href="http://openjdk.java.net/jeps/290">Filter Incoming Serialization Data</a></td></tr>
+<tr><td>291: <a href="http://openjdk.java.net/jeps/291">Deprecate the Concurrent Mark Sweep (CMS) GC</a></td></tr>
+<tr><td>292: <a href="http://openjdk.java.net/jeps/292">Implement Selected ECMAScript 6 Features in Nashorn</a></td></tr>
+<tr><td>294: <a href="http://openjdk.java.net/jeps/294">Linux/s390x Port</a></td></tr>
+<tr><td>295: <a href="http://openjdk.java.net/jeps/295">Ahead-of-Time Compilation</a></td></tr>
+<tr><td>297: <a href="http://openjdk.java.net/jeps/297">Unified arm32/arm64 Port</a></td></tr>
+<tr><td>298: <a href="http://openjdk.java.net/jeps/298">Remove Demos and Samples</a></td></tr>
+<tr><td>299: <a href="http://openjdk.java.net/jeps/299">Reorganize Documentation</a></td></tr>
+
+              </tbody>
+            </table>
+
+          </section>
+
+          <section class="demo">
+
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 6em 0 0; border: none;">
+	      <tbody>
+
+<tr class="JEP_SE            "><td>102: <a href="http://openjdk.java.net/jeps/102">Process API Updates</a></td></tr>
+<tr class="JEP_JDK           "><td>110: <a href="http://openjdk.java.net/jeps/110">HTTP/2 Client (Incubator)</a></td></tr>
+<tr class="JEP_Implementation"><td>143: <a href="http://openjdk.java.net/jeps/143">Improve Contended Locking</a></td></tr>
+<tr class="JEP_Implementation"><td>158: <a href="http://openjdk.java.net/jeps/158">Unified JVM Logging</a></td></tr>
+<tr class="JEP_JDK           "><td>165: <a href="http://openjdk.java.net/jeps/165">Compiler Control</a></td></tr>
+<tr class="JEP_SE            "><td>193: <a href="http://openjdk.java.net/jeps/193">Variable Handles</a></td></tr>
+<tr class="JEP_Implementation"><td>197: <a href="http://openjdk.java.net/jeps/197">Segmented Code Cache</a></td></tr>
+<tr class="JEP_JDK           "><td>199: <a href="http://openjdk.java.net/jeps/199">Smart Java Compilation, Phase Two</a></td></tr>
+<tr class="JEP_SE            "><td>200: <a href="http://openjdk.java.net/jeps/200">The Modular JDK</a></td></tr>
+<tr class="JEP_Implementation"><td>201: <a href="http://openjdk.java.net/jeps/201">Modular Source Code</a></td></tr>
+<tr class="JEP_SE            "><td>211: <a href="http://openjdk.java.net/jeps/211">Elide Deprecation Warnings on Import Statements</a></td></tr>
+<tr class="JEP_JDK           "><td>212: <a href="http://openjdk.java.net/jeps/212">Resolve Lint and Doclint Warnings</a></td></tr>
+<tr class="JEP_SE            "><td>213: <a href="http://openjdk.java.net/jeps/213">Milling Project Coin</a></td></tr>
+<tr class="JEP_JDK           "><td>214: <a href="http://openjdk.java.net/jeps/214">Remove GC Combinations Deprecated in JDK 8</a></td></tr>
+<tr class="JEP_JDK           "><td>215: <a href="http://openjdk.java.net/jeps/215">Tiered Attribution for javac</a></td></tr>
+<tr class="JEP_Implementation"><td>216: <a href="http://openjdk.java.net/jeps/216">Process Import Statements Correctly</a></td></tr>
+<tr class="JEP_Implementation"><td>217: <a href="http://openjdk.java.net/jeps/217">Annotations Pipeline 2.0</a></td></tr>
+<tr class="JEP_SE            "><td>219: <a href="http://openjdk.java.net/jeps/219">Datagram Transport Layer Security (DTLS)</a></td></tr>
+<tr class="JEP_SE            "><td>220: <a href="http://openjdk.java.net/jeps/220">Modular Run-Time Images</a></td></tr>
+<tr class="JEP_JDK           "><td>221: <a href="http://openjdk.java.net/jeps/221">New Doclet API</a></td></tr>
+<tr class="JEP_JDK           "><td>222: <a href="http://openjdk.java.net/jeps/222">jshell: The Java Shell (Read-Eval-Print Loop)</a></td></tr>
+<tr class="JEP_SE            "><td>223: <a href="http://openjdk.java.net/jeps/223">New Version-String Scheme</a></td></tr>
+<tr class="JEP_JDK           "><td>224: <a href="http://openjdk.java.net/jeps/224">HTML5 Javadoc</a></td></tr>
+<tr class="JEP_JDK           "><td>225: <a href="http://openjdk.java.net/jeps/225">Javadoc Search</a></td></tr>
+<tr class="JEP_SE            "><td>226: <a href="http://openjdk.java.net/jeps/226">UTF-8 Property Resource Bundles</a></td></tr>
+<tr class="JEP_SE            "><td>227: <a href="http://openjdk.java.net/jeps/227">Unicode 7.0</a></td></tr>
+<tr class="JEP_Implementation"><td>228: <a href="http://openjdk.java.net/jeps/228">Add More Diagnostic Commands</a></td></tr>
+<tr class="JEP_SE            "><td>229: <a href="http://openjdk.java.net/jeps/229">Create PKCS12 Keystores by Default</a></td></tr>
+<tr class="JEP_JDK           "><td>231: <a href="http://openjdk.java.net/jeps/231">Remove Launch-Time JRE Version Selection</a></td></tr>
+<tr class="JEP_Implementation"><td>232: <a href="http://openjdk.java.net/jeps/232">Improve Secure Application Performance</a></td></tr>
+
+              </tbody>
+            </table>
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 6em 0 0; border: none;">
+	      <tbody>
+
+<tr class="JEP_Implementation"><td>233: <a href="http://openjdk.java.net/jeps/233">Generate Run-Time Compiler Tests Automatically</a></td></tr>
+<tr class="JEP_Implementation"><td>235: <a href="http://openjdk.java.net/jeps/235">Test Class-File Attributes Generated by javac</a></td></tr>
+<tr class="JEP_JDK           "><td>236: <a href="http://openjdk.java.net/jeps/236">Parser API for Nashorn</a></td></tr>
+<tr class="JEP_Implementation"><td>237: <a href="http://openjdk.java.net/jeps/237">Linux/AArch64 Port</a></td></tr>
+<tr class="JEP_SE            "><td>238: <a href="http://openjdk.java.net/jeps/238">Multi-Release JAR Files</a></td></tr>
+<tr class="JEP_JDK           "><td>240: <a href="http://openjdk.java.net/jeps/240">Remove the JVM TI hprof Agent</a></td></tr>
+<tr class="JEP_JDK           "><td>241: <a href="http://openjdk.java.net/jeps/241">Remove the jhat Tool</a></td></tr>
+<tr class="JEP_JDK           "><td>243: <a href="http://openjdk.java.net/jeps/243">Java-Level JVM Compiler Interface</a></td></tr>
+<tr class="JEP_SE            "><td>244: <a href="http://openjdk.java.net/jeps/244">TLS Application-Layer Protocol Negotiation Extension</a></td></tr>
+<tr class="JEP_JDK           "><td>245: <a href="http://openjdk.java.net/jeps/245">Validate JVM Command-Line Flag Arguments</a></td></tr>
+<tr class="JEP_JDK           "><td>246: <a href="http://openjdk.java.net/jeps/246">Leverage CPU Instructions for GHASH and RSA</a></td></tr>
+<tr class="JEP_JDK           "><td>247: <a href="http://openjdk.java.net/jeps/247">Compile for Older Platform Versions</a></td></tr>
+<tr class="JEP_JDK           "><td>248: <a href="http://openjdk.java.net/jeps/248">Make G1 the Default Garbage Collector</a></td></tr>
+<tr class="JEP_SE            "><td>249: <a href="http://openjdk.java.net/jeps/249">OCSP Stapling for TLS</a></td></tr>
+<tr class="JEP_JDK           "><td>250: <a href="http://openjdk.java.net/jeps/250">Store Interned Strings in CDS Archives</a></td></tr>
+<tr class="JEP_SE            "><td>251: <a href="http://openjdk.java.net/jeps/251">Multi-Resolution Images</a></td></tr>
+<tr class="JEP_SE            "><td>252: <a href="http://openjdk.java.net/jeps/252">Use CLDR Locale Data by Default</a></td></tr>
+<tr class="JEP_JDK           "><td>253: <a href="http://openjdk.java.net/jeps/253">Prepare JavaFX UI Controls &amp; CSS APIs for Modularization</a></td></tr>
+<tr class="JEP_Implementation"><td>254: <a href="http://openjdk.java.net/jeps/254">Compact Strings</a></td></tr>
+<tr class="JEP_JDK           "><td>255: <a href="http://openjdk.java.net/jeps/255">Merge Selected Xerces 2.11.0 Updates into JAXP</a></td></tr>
+<tr class="JEP_JDK           "><td>256: <a href="http://openjdk.java.net/jeps/256">BeanInfo Annotations</a></td></tr>
+<tr class="JEP_Implementation"><td>257: <a href="http://openjdk.java.net/jeps/257">Update JavaFX/Media to Newer Version of GStreamer</a></td></tr>
+<tr class="JEP_Implementation"><td>258: <a href="http://openjdk.java.net/jeps/258">HarfBuzz Font-Layout Engine</a></td></tr>
+<tr class="JEP_SE            "><td>259: <a href="http://openjdk.java.net/jeps/259">Stack-Walking API</a></td></tr>
+<tr class="JEP_JDK           "><td>260: <a href="http://openjdk.java.net/jeps/260">Encapsulate Most Internal APIs</a></td></tr>
+<tr class="JEP_SE            "><td>261: <a href="http://openjdk.java.net/jeps/261">Module System</a></td></tr>
+<tr class="JEP_SE            "><td>262: <a href="http://openjdk.java.net/jeps/262">TIFF Image I/O</a></td></tr>
+<tr class="JEP_JDK           "><td>263: <a href="http://openjdk.java.net/jeps/263">HiDPI Graphics on Windows and Linux</a></td></tr>
+<tr class="JEP_SE            "><td>264: <a href="http://openjdk.java.net/jeps/264">Platform Logging API and Service</a></td></tr>
+<tr class="JEP_JDK           "><td>265: <a href="http://openjdk.java.net/jeps/265">Marlin Graphics Renderer</a></td></tr>
+
+              </tbody>
+            </table>
+	    <table style="font-size: 10.5pt; display: inline; padding: 0 0 0 0; border: none;">
+	      <tbody>
+
+<tr class="JEP_SE            "><td>266: <a href="http://openjdk.java.net/jeps/266">More Concurrency Updates</a></td></tr>
+<tr class="JEP_SE            "><td>267: <a href="http://openjdk.java.net/jeps/267">Unicode 8.0</a></td></tr>
+<tr class="JEP_SE            "><td>268: <a href="http://openjdk.java.net/jeps/268">XML Catalogs</a></td></tr>
+<tr class="JEP_SE            "><td>269: <a href="http://openjdk.java.net/jeps/269">Convenience Factory Methods for Collections</a></td></tr>
+<tr class="JEP_JDK           "><td>270: <a href="http://openjdk.java.net/jeps/270">Reserved Stack Areas for Critical Sections</a></td></tr>
+<tr class="JEP_JDK           "><td>271: <a href="http://openjdk.java.net/jeps/271">Unified GC Logging</a></td></tr>
+<tr class="JEP_SE            "><td>272: <a href="http://openjdk.java.net/jeps/272">Platform-Specific Desktop Features</a></td></tr>
+<tr class="JEP_SE            "><td>273: <a href="http://openjdk.java.net/jeps/273">DRBG-Based SecureRandom Implementations</a></td></tr>
+<tr class="JEP_SE            "><td>274: <a href="http://openjdk.java.net/jeps/274">Enhanced Method Handles</a></td></tr>
+<tr class="JEP_JDK           "><td>275: <a href="http://openjdk.java.net/jeps/275">Modular Java Application Packaging</a></td></tr>
+<tr class="JEP_JDK           "><td>276: <a href="http://openjdk.java.net/jeps/276">Dynamic Linking of Language-Defined Object Models</a></td></tr>
+<tr class="JEP_SE            "><td>277: <a href="http://openjdk.java.net/jeps/277">Enhanced Deprecation</a></td></tr>
+<tr class="JEP_Implementation"><td>278: <a href="http://openjdk.java.net/jeps/278">Additional Tests for Humongous Objects in G1</a></td></tr>
+<tr class="JEP_Implementation"><td>279: <a href="http://openjdk.java.net/jeps/279">Improve Test-Failure Troubleshooting</a></td></tr>
+<tr class="JEP_SE            "><td>280: <a href="http://openjdk.java.net/jeps/280">Indify String Concatenation</a></td></tr>
+<tr class="JEP_Implementation"><td>281: <a href="http://openjdk.java.net/jeps/281">HotSpot C++ Unit-Test Framework</a></td></tr>
+<tr class="JEP_JDK           "><td>282: <a href="http://openjdk.java.net/jeps/282">jlink: The Java Linker</a></td></tr>
+<tr class="JEP_JDK           "><td>283: <a href="http://openjdk.java.net/jeps/283">Enable GTK 3 on Linux</a></td></tr>
+<tr class="JEP_Implementation"><td>284: <a href="http://openjdk.java.net/jeps/284">New HotSpot Build System</a></td></tr>
+<tr class="JEP_SE            "><td>285: <a href="http://openjdk.java.net/jeps/285">Spin-Wait Hints</a></td></tr>
+<tr class="JEP_Implementation"><td>287: <a href="http://openjdk.java.net/jeps/287">SHA-3 Hash Algorithms</a></td></tr>
+<tr class="JEP_JDK           "><td>288: <a href="http://openjdk.java.net/jeps/288">Disable SHA-1 Certificates</a></td></tr>
+<tr class="JEP_SE            "><td>289: <a href="http://openjdk.java.net/jeps/289">Deprecate the Applet API</a></td></tr>
+<tr class="JEP_SE            "><td>290: <a href="http://openjdk.java.net/jeps/290">Filter Incoming Serialization Data</a></td></tr>
+<tr class="JEP_JDK           "><td>291: <a href="http://openjdk.java.net/jeps/291">Deprecate the Concurrent Mark Sweep (CMS) GC</a></td></tr>
+<tr class="JEP_JDK           "><td>292: <a href="http://openjdk.java.net/jeps/292">Implement Selected ECMAScript 6 Features in Nashorn</a></td></tr>
+<tr class="JEP_Implementation"><td>294: <a href="http://openjdk.java.net/jeps/294">Linux/s390x Port</a></td></tr>
+<tr class="JEP_Implementation"><td>295: <a href="http://openjdk.java.net/jeps/295">Ahead-of-Time Compilation</a></td></tr>
+<tr class="JEP_Implementation"><td>297: <a href="http://openjdk.java.net/jeps/297">Unified arm32/arm64 Port</a></td></tr>
+<tr class="JEP_JDK           "><td>298: <a href="http://openjdk.java.net/jeps/298">Remove Demos and Samples</a></td></tr>
+<tr class="JEP_JDK           "><td>299: <a href="http://openjdk.java.net/jeps/299">Reorganize Documentation</a></td></tr>
+
+              </tbody>
+            </table>
+
+          </section>
+
+          <section class="demo">
+	    <table style="font-size: 16pt; display: inline; padding: 0 6em 0 0; border: none;">
+              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;">Java 10</caption>
+	      <tbody>
+<tr class="JEP_SE            "><td>286: <a href="http://openjdk.java.net/jeps/286">Local-Variable Type Inference</a></td></tr>
+<tr class="JEP_Implementation"><td>296: <a href="http://openjdk.java.net/jeps/296">Consolidate the JDK Forest into a Single Repository</a></td></tr>
+<tr class="JEP_Implementation"><td>304: <a href="http://openjdk.java.net/jeps/304">Garbage Collector Interface</a></td></tr>
+<tr class="JEP_Implementation"><td>307: <a href="http://openjdk.java.net/jeps/307">Parallel Full GC for G1</a></td></tr>
+<tr class="JEP_Implementation"><td>310: <a href="http://openjdk.java.net/jeps/310">Application Class-Data Sharing</a></td></tr>
+<tr class="JEP_JDK           "><td>312: <a href="http://openjdk.java.net/jeps/312">Thread-Local Handshakes</a></td></tr>
+<tr class="JEP_JDK           "><td>313: <a href="http://openjdk.java.net/jeps/313">Remove the Native-Header Generation Tool (javah)</a></td></tr>
+<tr class="JEP_SE            "><td>314: <a href="http://openjdk.java.net/jeps/314">Additional Unicode Language-Tag Extensions</a></td></tr>
+<tr class="JEP_JDK           "><td>316: <a href="http://openjdk.java.net/jeps/316">Heap Allocation on Alternative Memory Devices</a></td></tr>
+<tr class="JEP_JDK           "><td>317: <a href="http://openjdk.java.net/jeps/317">Experimental Java-Based JIT Compiler</a></td></tr>
+<tr class="JEP_JDK           "><td>319: <a href="http://openjdk.java.net/jeps/319">Root Certificates</a></td></tr>
+<tr class="JEP_SE            "><td>322: <a href="http://openjdk.java.net/jeps/322">Time-Based Release Versioning</a></td></tr>
+              </tbody>
+            </table>
+
+	    <table style="font-size: 16pt; display: inline; padding: 0 0 0 0; border: none;">
+              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;">Java 11</caption>
+	      <tbody>
+<tr class="JEP_SE            "><td>309: <a href="http://openjdk.java.net/jeps/309">Dynamic Class-File Constants</a></td></tr>
+<tr class="JEP_Implementation"><td>318: <a href="http://openjdk.java.net/jeps/318">Epsilon: A No-Op Garbage Collector</a></td></tr>
+<tr class="JEP_SE            "><td>320: <a href="http://openjdk.java.net/jeps/320">Remove the Java EE and CORBA Modules</a></td></tr>
+<tr class="JEP_SE            "><td>321: <a href="http://openjdk.java.net/jeps/321">HTTP Client (Standard)</a></td></tr>
+<tr class="JEP_SE            "><td>323: <a href="http://openjdk.java.net/jeps/323">Local-Variable Syntax for Lambda Parameters</a></td></tr>
+<tr class="JEP_SE            "><td>324: <a href="http://openjdk.java.net/jeps/324">Key Agreement with Curve25519 and Curve448</a></td></tr>
+<tr class="JEP_SE            "><td>327: <a href="http://openjdk.java.net/jeps/327">Unicode 10</a></td></tr>
+<tr class="JEP_JDK           "><td>328: <a href="http://openjdk.java.net/jeps/328">Flight Recorder</a></td></tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+
+        <section class="demo">
+
+          <section class="demo">
+
+            <h2>JEP 286: <a href="http://openjdk.java.net/jeps/286">Local-Variable Type Inference</a></h2>
+
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+import java.nio.file.Paths;
+import java.nio.file.Files;
+
+public class LVTI {
+
+  public static void main(String... args) throws Exception {
+
+    <span class="fragment highlight-current-border" data-fragment-index="1">var path</span> = Paths.get(args[0]);        <span class="fragment" data-fragment-index="1">// infers java.nio.file.Path</span>
+
+    <span class="fragment highlight-current-border" data-fragment-index="2">var lines</span> = Files.readAllLines(path); <span class="fragment" data-fragment-index="2">// infers java.util.List&lt;String&gt;</span>
+
+    lines.forEach(System.out::println);
+
+    for (<span class="fragment highlight-current-border" data-fragment-index="3">var it</span> = lines.iterator(); it.hasNext(); ) { <span class="fragment" data-fragment-index="3">// infers Iterator&lt;String&gt;</span>
+      System.out.println(it.next());
+    }
+  }
+}
+              </code>
+            </pre>
+          </section>
+
+          <section class="demo">
+
+            <div style="width: 100%">
+              <div style="float: left; width: 50%">
+
+            <pre class="big noshadow" style="height:100%; margin: 0; display: block" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+public class Var9 {
+
+  static class <span class="fragment highlight-border" data-fragment-index="3">var</span> {
+    int var(int var) { return var; }
+  }
+
+  public static void main(String[] args) {
+    int var = 42;
+
+    System.out.println(var);
+
+    System.out.println(new var().var(var));
+  }
+}
+              </code>
+            </pre>
+            <pre class="big noshadow" style="height:100%; margin: 0; display: block;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment" data-fragment-index="1">&lt;JAVA_9&gt;/bin/javac Var9.java
+$ </span><span class="fragment" data-fragment-index="2">&lt;JAVA_10&gt;/bin/javac Var9.java
+</span><span class="fragment" data-fragment-index="3">Var9.java:3: error: 'var' not allowed here
+  static class <span class="fragment highlight-border border-no-bottom" data-fragment-index="3">var</span> {
+               <span class="fragment highlight-border border-no-top" data-fragment-index="3">^  </span>
+  as of release 10, 'var' is a
+  <span class="fragment highlight-border" data-fragment-index="3">restricted local variable type</span> and cannot
+  be used for type declarations</span>
+              </code>
+            </pre>
+
+              </div>
+              <div style="position:relative; float: right; width: 50%">
+
+            <pre class="big noshadow" style="height:100%; margin: 0; display: block" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+public class Var10 {
+
+  static class <span class="fragment highlight-border" data-fragment-index="4">Var</span> {
+    int var(int var) { return var; }
+  }
+
+  public static void main(String[] args) {
+    int var = 42;
+
+    System.out.println(var);
+
+    System.out.println(new <span class="fragment highlight-border" data-fragment-index="4">Var</span>().var(var));
+  }
+}
+              </code>
+            </pre>
+            <pre class="big noshadow" style="height:100%; margin: 0; display: block;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment" data-fragment-index="5">&lt;JAVA_9&gt;/bin/javac Var10.java
+$ </span><span class="fragment" data-fragment-index="6">&lt;JAVA_10&gt;/bin/javac Var10.java
+$ </span>
+
+
+
+
+
+<span/>
+              </code>
+            </pre>
+
+              </div>
+            </div>
+
+          </section>
+
+        </section>
+
+        <section>
+          <h2>The future of the OpenJDK</h2>
+
+          <ul>
+            <li>New six month, <a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004281.html">release cadence</a>
+              <ul>
+                <li>Who will maintain and support old / short-term releases ?</li>
+              </ul>
+            </li>
+            <li>Many new projects:
+              <ul>
+                <li><a href="http://openjdk.java.net/projects/panama/">Panama</a>: Interconnecting JVM and native code</li>
+                <li><a href="http://openjdk.java.net/projects/valhalla/">Valhalla</a>: Value Objects</li>
+                <li><a href="https://github.com/oracle/graal">Graal</a>: Interpreter and Just-In-Time compilers in Java (used for AOT)</li>
+                <li><a href="http://openjdk.java.net/projects/loom/">Loom</a>: lightweight user-mode threads (fibers), continuations, tail-calls</li>
+                <li><a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004336.html">Metropolis</a>:
+                  re-implement significant parts of Hotspot’s C++ runtime in Java itself</li>
+              </ul>
+            </li>
+            <li><a href="https://youtu.be/UNg9lmk60sg?t=46m55s">Open Source all Oracle JDK proprietary features</a>:
+              <ul>
+                <li><a href="http://openjdk.java.net/projects/zgc/">ZGC</a>: scalable, low latency GC for big heaps</li>
+                <li><a href="https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH170">Flight Recorder</a> /
+                  <a href="http://www.oracle.com/technetwork/java/javaseproducts/mission-control/java-mission-control-1998576.html">Mission Control</a></li>
+              </ul>
+            </li>
+            <li>Competition: <a href="https://www.eclipse.org/openj9/">Open J9</a></li>
+          </ul>
+        </section>
+
+        <section>
+
+          <h3 style="text-transform: none;"><a href="https://simonis.github.io/JEEConf2018/Java_9_10_11_BOF">https://simonis.github.io/JEEConf2018/Java_9_10_11_BOF</a></h3>
+
+        </section>
+
+      </div>
+    </div>
+
+    <script src="reveal.js/lib/js/head.min.js"></script>
+    <script src="reveal.js/js/reveal.js"></script>
+
+    <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        //width: 1024,
+        //height: 768,
+        //width: 1280,
+        //height: 720,
+        width: 1366,
+        height: 768,
+        //width: 1920,
+        //height: 1080,
+        //margin: 0.1, // Old setting which was used in the reveal.js version used for the JET2015 presentation
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        slideNumber: true,
+
+        transition: 'none', // none/fade/slide/convex/concave/zoom
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'reveal.js/plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() {
+
+hljs.registerLanguage('terminal', function(hljs) {
+  return {
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      {
+        className: 'title',
+        lexemes: /[$()>_a-zA-Z0-9]+/,
+        keywords: "$ (gdb) hsdb>",
+        begin: /^\$ |\(gdb\)|hsdb> /,
+        end: /[^\\]\n/,
+	contains: [
+          hljs.COMMENT('//', '$', { endsParent: true })
+	]
+      }
+    ]
+  }
+});
+
+hljs.initHighlightingOnLoad(); } },
+          { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true },
+          { src: 'reveal.js/plugin/notes/notes.js', async: true }
+        ]
+      });
+
+      //Reveal.configure({ slideNumber: true });
+    </script>
+
+  </body>
+</html>
+
+<!--  LocalWords:  OpenJDK scrollable px pre hljs noshadow li img fff
+ -->
+<!--  LocalWords:  bd hirarchy monospace arial helvetica ffffff td os
+ -->
+<!--  LocalWords:  functionCall darkblue javaCall darkgreen ffa GPLv
+ -->
+<!--  LocalWords:  rowspan Volker Simonis Classpath implementers Azul
+ -->
+<!--  LocalWords:  RedHat InvokeDynamic Nashorn Graal Shanandoa JDK
+ -->
+<!--  LocalWords:  IcedTea distros AdoptOpenJDK JVM OCA OSI TCK OCTLA
+ -->
+<!--  LocalWords:  Duimovich SUNY Oswego Committers jdk Webrev corba
+ -->
+<!--  LocalWords:  hotspot jaxp jaxws langtools nashorn JEP repo html
+ -->
+<!--  LocalWords:  parallelized MacOS README JCK JUnit TestNG webrev
+ -->
+<!--  LocalWords:  Korn JBS AWT JIT RFR AIX Roadmap JCP JSR JEPs GCs
+ -->
+<!--  LocalWords:  JITs EE dev libs
+ -->
