@@ -152,6 +152,38 @@
         <section>
 
           <section>
+            <h2><a href="https://www.jcp.org"><b>JCP</b> - The Java Community Process</a> and<br/>
+              <a href="https://www.jcp.org/en/jsr/overview"><b>JSR</b> - Java Specification Requests</a></h2>
+
+            <ul>
+              <li>A formalized mechanism for developing Java specifications</li>
+              <li><b>Not</b> an independent standards organization / legal entity
+                <ul>
+                  <li>A vendor consortium dominated by Oracle</li>
+                </ul>
+              </li>
+              <li>Membership requires fee for organizations/companies but is free for individuals</li>
+              <li><a href="https://www.jcp.org/en/jsr/overview"><b>JSR</b></a>'s for proposing and specifying new technologies:
+                <ul>
+                  <li>A final JSR provides a free reference implementation and</li>
+                  <li>A <a href="https://en.wikipedia.org/wiki/Technology_Compatibility_Kit">TCK</a> (Technology Compatibility Kit) for verification</li>
+                </ul>
+              </li>
+              <li>Currently the JCP specifies three platforms:
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=1&amp;listByType=platform">Java ME</a>,
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=2&amp;listByType=platform">Java SE</a> and
+                <a href="https://www.jcp.org/en/jsr/platform?listBy=3&amp;listByType=platform"><span style="text-decoration: line-through;">Java EE</span></a></li>
+              <li>JCP is being criticized as being a "rubber stamp organization", but see:
+                <ul>
+                  <li><a href="https://en.wikipedia.org/wiki/Apache_Harmony#Difficulties_to_obtain_a_TCK_license_from_Sun">Apache vs. Sun on getting access to the TCK</a></li>
+                  <li><a href="https://www.jcp.org/en/jsr/results?id=5959">JCP EC rejects JSR 376 (Jigsaw)</a></li>
+                </ul>
+              </li>
+            </ul>
+
+          </section>
+
+          <section>
             <h2><a href="http://openjdk.java.net/jeps/0"><b>JEP</b> - The JDK Enhancement-Proposal &amp; Roadmap Process</a></h2>
 
             <ul>
@@ -171,37 +203,6 @@
               </li>
               <li>Still attractive for &ldquo;implementation enhancements&rdquo; (i.e. new Ports, GCs, JITs, ..)</li>
             </ul>
-          </section>
-
-          <section>
-            <h2><a href="https://www.jcp.org"><b>JCP</b> - The Java Community Process</a></h2>
-
-            <ul>
-              <li>A formalized mechanism for developing Java specifications</li>
-              <li><b>Not</b> an independent standards organization / legal entity
-                <ul>
-                  <li>A vendor consortium dominated by Oracle</li>
-                </ul>
-              </li>
-              <li>Membership requires fee for organizations/companies but is free for individuals</li>
-              <li><a href="https://www.jcp.org/en/jsr/overview"><b>JSR</b></a>'s (Java Specification Requests) for proposing and specifying new technologies:
-                <ul>
-                  <li>A final JSR provides a free reference implementation and</li>
-                  <li>A <a href="https://en.wikipedia.org/wiki/Technology_Compatibility_Kit">TCK</a> (Technology Compatibility Kit) for verification</li>
-                </ul>
-              </li>
-              <li>Currently the JCP specifies three platforms:
-                <a href="https://www.jcp.org/en/jsr/platform?listBy=1&amp;listByType=platform">Java ME</a>,
-                <a href="https://www.jcp.org/en/jsr/platform?listBy=2&amp;listByType=platform">Java SE</a> and
-                <a href="https://www.jcp.org/en/jsr/platform?listBy=3&amp;listByType=platform"><span style="text-decoration: line-through;">Java EE</span></a></li>
-              <li>JCP is being criticized as being a "rubber stamp organization", but see:
-                <ul>
-                  <li><a href="https://en.wikipedia.org/wiki/Apache_Harmony#Difficulties_to_obtain_a_TCK_license_from_Sun">Apache vs. Sun on getting access to the TCK</a></li>
-                  <li><a href="https://www.jcp.org/en/jsr/results?id=5959">JCP EC rejects JSR 376 (Jigsaw)</a></li>
-                </ul>
-              </li>
-            </ul>
-
           </section>
 
           <section>
@@ -226,6 +227,49 @@
               </li>
             </ul>
 
+          </section>
+
+          <section>
+            <h2><a href="https://wiki.openjdk.java.net/display/csr/Main"><b>CSR</b> - Compatibility &amp; Specification Review</a></h2>
+
+            <ul>
+              <li>Source compatibility:
+                <ul>
+                  <li>concerns translating Java source code into class files</li>
+                </ul>
+              </li>
+              <li>Binary compatibility:
+                <ul>
+                  <li>defined in the <a href="https://docs.oracle.com/javase/specs/jls/se9/html/jls-13.html#jls-13.2">JLS</a> as preserving the ability to link without error</li>
+                </ul>
+              </li>
+              <li>Behavioral compatibility:
+                <ul>
+                  <li>includes the semantics of the code that is executed at runtime</li>
+                </ul>
+              </li>
+            </ul>
+
+          </section>
+
+          <section>
+            <h2><a href="https://wiki.openjdk.java.net/display/csr/Main"><b>CSR</b> - Compatibility &amp; Specification Review</a></h2>
+
+            <ul>
+              All of the following changes require a <a href="https://bugs.openjdk.java.net/secure/Dashboard.jspa?selectPageId=17313">CSR review</a>:
+
+              <ul>
+                <li>Changes to public exported APIs in java.* and javax.* packages.</li>
+                <li>Changes to public and exported APIs in jdk.*packages.</li>
+                <li>New language updates to the Java Programming Language</li>
+                <li>New structures in the Java Virtual Machine Specification</li>
+                <li>Adding or removing a command in $JDK/bin</li>
+                <li>Adding, removing, or changing a command line option</li>
+                <li>Using or defining an environment variable</li>
+                <li>Using or defining a new file format or wire format</li>
+                <li>Changing or defining a new system or security property</li>
+              </ul>
+            </ul>
           </section>
 
         </section>
@@ -475,7 +519,7 @@
 
           <section class="demo">
 	    <table style="font-size: 16pt; display: inline; padding: 0 6em 0 0; border: none;">
-              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;">Java 10</caption>
+              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;"><a href="https://bugs.openjdk.java.net/issues/?filter=33628">Java 10</a></caption>
 	      <tbody>
 <tr class="JEP_SE            "><td>286: <a href="http://openjdk.java.net/jeps/286">Local-Variable Type Inference</a></td></tr>
 <tr class="JEP_Implementation"><td>296: <a href="http://openjdk.java.net/jeps/296">Consolidate the JDK Forest into a Single Repository</a></td></tr>
@@ -493,7 +537,7 @@
             </table>
 
 	    <table style="font-size: 16pt; display: inline; padding: 0 0 0 0; border: none;">
-              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;">Java 11</caption>
+              <caption style="font-size: 30pt; font-weight: bold; line-height: 200%;"><a href="https://bugs.openjdk.java.net/issues/?filter=33629">Java 11</a></caption>
 	      <tbody>
 <tr class="JEP_SE            "><td>309: <a href="http://openjdk.java.net/jeps/309">Dynamic Class-File Constants</a></td></tr>
 <tr class="JEP_Implementation"><td>318: <a href="http://openjdk.java.net/jeps/318">Epsilon: A No-Op Garbage Collector</a></td></tr>
@@ -505,6 +549,32 @@
 <tr class="JEP_JDK           "><td>328: <a href="http://openjdk.java.net/jeps/328">Flight Recorder</a></td></tr>
               </tbody>
             </table>
+          </section>
+        </section>
+
+        <section class="demo">
+
+          <section class="demo">
+
+            <h2>Java / OpenJDK Release Planning</h2>
+
+            <ul>
+              <li><a href="http://openjdk.java.net/projects/jdk/10/">JKD 10</a>
+                <ul>
+                 <li><a href="http://openjdk.java.net/projects/jdk/10/spec/">Java SE 10 Specification</a></li>
+                 <li><a href="https://bugs.openjdk.java.net/secure/Dashboard.jspa?selectPageId=17511">JEP Dashboard</a></li>
+                 <li><a href="https://bugs.openjdk.java.net/secure/Dashboard.jspa?selectPageId=17600">CSR Dashboard</a></li>
+                </ul>
+              </li>
+              <li><a href="http://openjdk.java.net/projects/jdk/11/">JDK 11</a>
+                <ul>
+                 <li><a href="http://openjdk.java.net/projects/jdk/11/spec/">Java SE 11 Specification</a></li>
+                 <li><a href="https://bugs.openjdk.java.net/secure/Dashboard.jspa?selectPageId=17668">JEP Dashboard</a></li>
+                 <li><a href="https://bugs.openjdk.java.net/secure/Dashboard.jspa?selectPageId=17669">CSR Dashboard</a></li>
+                </ul>
+              </li>
+            </ul>
+
           </section>
         </section>
 
