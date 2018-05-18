@@ -578,6 +578,36 @@
           </section>
         </section>
 
+        <section>
+          <h2>The future of the OpenJDK</h2>
+
+          <ul>
+            <li>New six month, <a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004281.html">release cadence</a>
+              <ul>
+                <li>Who will maintain and support old / short-term releases ?</li>
+              </ul>
+            </li>
+            <li>Many new projects:
+              <ul>
+                <li><a href="http://openjdk.java.net/projects/panama/">Panama</a>: Interconnecting JVM and native code</li>
+                <li><a href="http://openjdk.java.net/projects/valhalla/">Valhalla</a>: Value Objects</li>
+                <li><a href="https://github.com/oracle/graal">Graal</a>: Interpreter and Just-In-Time compilers in Java (used for AOT)</li>
+                <li><a href="http://openjdk.java.net/projects/loom/">Loom</a>: lightweight user-mode threads (fibers), continuations, tail-calls</li>
+                <li><a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004336.html">Metropolis</a>:
+                  re-implement significant parts of Hotspot’s C++ runtime in Java itself</li>
+              </ul>
+            </li>
+            <li><a href="https://youtu.be/UNg9lmk60sg?t=46m55s">Open Source all Oracle JDK proprietary features</a>:
+              <ul>
+                <li><a href="http://openjdk.java.net/projects/zgc/">ZGC</a>: scalable, low latency GC for big heaps</li>
+                <li><a href="https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH170">Flight Recorder</a> /
+                  <a href="http://www.oracle.com/technetwork/java/javaseproducts/mission-control/java-mission-control-1998576.html">Mission Control</a></li>
+              </ul>
+            </li>
+            <li>Competition: <a href="https://www.eclipse.org/openj9/">Open J9</a></li>
+          </ul>
+        </section>
+
         <section class="demo">
 
           <section class="demo">
@@ -684,36 +714,117 @@ $ </span>
 
           </section>
 
-        </section>
+          <section class="demo">
 
-        <section>
-          <h2>The future of the OpenJDK</h2>
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+import java.util.function.UnaryOperator;
 
-          <ul>
-            <li>New six month, <a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004281.html">release cadence</a>
-              <ul>
-                <li>Who will maintain and support old / short-term releases ?</li>
-              </ul>
-            </li>
-            <li>Many new projects:
-              <ul>
-                <li><a href="http://openjdk.java.net/projects/panama/">Panama</a>: Interconnecting JVM and native code</li>
-                <li><a href="http://openjdk.java.net/projects/valhalla/">Valhalla</a>: Value Objects</li>
-                <li><a href="https://github.com/oracle/graal">Graal</a>: Interpreter and Just-In-Time compilers in Java (used for AOT)</li>
-                <li><a href="http://openjdk.java.net/projects/loom/">Loom</a>: lightweight user-mode threads (fibers), continuations, tail-calls</li>
-                <li><a href="http://mail.openjdk.java.net/pipermail/discuss/2017-September/004336.html">Metropolis</a>:
-                  re-implement significant parts of Hotspot’s C++ runtime in Java itself</li>
-              </ul>
-            </li>
-            <li><a href="https://youtu.be/UNg9lmk60sg?t=46m55s">Open Source all Oracle JDK proprietary features</a>:
-              <ul>
-                <li><a href="http://openjdk.java.net/projects/zgc/">ZGC</a>: scalable, low latency GC for big heaps</li>
-                <li><a href="https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm#JFRUH170">Flight Recorder</a> /
-                  <a href="http://www.oracle.com/technetwork/java/javaseproducts/mission-control/java-mission-control-1998576.html">Mission Control</a></li>
-              </ul>
-            </li>
-            <li>Competition: <a href="https://www.eclipse.org/openj9/">Open J9</a></li>
-          </ul>
+public class VarLambda10 {
+
+  public static void main(String[] args) {
+
+    <span class="fragment highlight-border">var var = (UnaryOperator)(x) -> x;</span>
+
+    System.out.println(var.apply(1));
+  }
+}
+              </code>
+            </pre>
+            <br/>
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment">&lt;JAVA_10&gt;/bin/javac VarLambda10.java
+$ </span><span class="fragment">&lt;JAVA_10&gt;/bin/java VarLambda10          
+</span><span class="fragment">1</span>
+              </code>
+            </pre>
+          </section>
+
+          <section class="demo">
+
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+import java.util.function.UnaryOperator;
+
+public class VarLambda10 {
+
+  public static void main(String[] args) {
+
+    var var = (UnaryOperator<span class="fragment highlight-border">&lt;Integer&gt;</span>)(x) -> x;
+
+    System.out.println(var.apply(1));
+  }
+}
+              </code>
+            </pre>
+            <br/>
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment">&lt;JAVA_10&gt;/bin/javac VarLambda10.java
+$ </span><span class="fragment">&lt;JAVA_10&gt;/bin/java VarLambda10               
+</span><span class="fragment">1</span>
+              </code>
+            </pre>
+          </section>
+
+          <section class="demo">
+
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+import java.util.function.UnaryOperator;
+
+public class VarLambda10 {
+
+  public static void main(String[] args) {
+
+    var var = (UnaryOperator&lt;Integer&gt;)(<span class="fragment highlight-border">Integer</span> x) -> x;
+
+    System.out.println(var.apply(1));
+  }
+}
+              </code>
+            </pre>
+            <br/>
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment">&lt;JAVA_10&gt;/bin/javac VarLambda10.java
+$ </span><span class="fragment">&lt;JAVA_10&gt;/bin/java VarLambda10                      
+</span><span class="fragment">1</span>
+              </code>
+            </pre>
+          </section>
+
+          <section class="demo">
+
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="java" data-trim="true" data-noescape="true" style="height:100%">
+import java.util.function.UnaryOperator;
+
+public class VarLambda10 {
+
+  public static void main(String[] args) {
+
+    var var = (UnaryOperator&lt;Integer&gt;)(<span class="fragment highlight-border">var</span> x) -> x; 
+
+    System.out.println(var.apply(1));
+  }
+}
+              </code>
+            </pre>
+            <br/>
+            <pre class="big noshadow" style="height:100%; margin: 0;" data-trim="true">
+              <code class="terminal" data-trim="true" data-noescape="true" style="height:100%">
+$ <span class="fragment">&lt;JAVA_10&gt;/bin/javac VarLambda10.java
+</span><span class="fragment">VarLambda10.java:7: error: 'var' is not allowed here
+    var var = (UnaryOperator&lt;Integer&gt;)(var x) -> x;
+                                       ^
+$ </span><span class="fragment">&lt;JAVA_11&gt;/bin/javac VarLambda10.java
+$ </span>
+              </code>
+            </pre>
+          </section>
+
         </section>
 
         <section>
